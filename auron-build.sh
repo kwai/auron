@@ -183,12 +183,12 @@ fi
 # Compose build args
 CLEAN_ARGS=()
 if [[ "$CLEAN" == true ]]; then
-    CLEAN_ARGS=("clean")
+    CLEAN_ARGS+=("clean")
 fi
 
 BUILD_ARGS=()
 if [[ "$SKIP_TESTS" == true ]]; then
-    BUILD_ARGS+=("package" ""-DskipTests"")
+    BUILD_ARGS+=("package" "-DskipTests")
 else
     BUILD_ARGS+=("package")
 fi
