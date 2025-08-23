@@ -28,7 +28,7 @@ print_help() {
     echo "  --release                Activate release profile"
     echo "  --sparkver <VERSION>     Specify Spark version (e.g. 3.0/3.1/3.2/3.3/3.4/3.5)"
     echo "  --scalaver <VERSION>     Specify Scala version (e.g. 2.12/2.13)"
-    echo "  --javaver <VERSION>      Specify Java version (e.g. 8/11/17)"
+    echo "  --javaver <VERSION>      Specify Java version (e.g. 8/11/17), (default: 8)"
     echo "  --celeborn <VERSION>     Specify Celeborn version (e.g. 0.5/0.6)"
     echo "  --uniffle <VERSION>      Specify Uniffle version (e.g. 0.9)"
     echo "  --paimon <VERSION>       Specify Paimon version (e.g. 1.1)"
@@ -37,8 +37,8 @@ print_help() {
     echo "  -h, --help               Show this help message"
     echo
     echo "Examples:"
-    echo "  $0 --clean true --skiptests true --pre --sparkver 3.5 --scalaver 2.12 --javaver 8"
-    echo "  $0 --clean true --skiptests true --release --sparkver 3.5 --scalaver 2.12 --javaver 8 --celeborn 0.5 --uniffle 0.9 --paimon 1.1"
+    echo "  $0 --clean true --skiptests true --pre --sparkver 3.5 --scalaver 2.12"
+    echo "  $0 --clean true --skiptests true --release --sparkver 3.5 --scalaver 2.12 --celeborn 0.5 --uniffle 0.9 --paimon 1.1"
     exit 0
 }
 
@@ -51,7 +51,7 @@ CLEAN=true
 SKIP_TESTS=true
 SPARK_VER=""
 SCALA_VER=""
-JAVA_VER=""
+JAVA_VER=8
 CELEBORN_VER=""
 UNIFFLE_VER=""
 PAIMON_VER=""
@@ -160,9 +160,6 @@ if [[ -z "$SPARK_VER" ]]; then
 fi
 if [[ -z "$SCALA_VER" ]]; then
     MISSING_REQUIREMENTS+=("--scalaver must be specified")
-fi
-if [[ -z "$JAVA_VER" ]]; then
-    MISSING_REQUIREMENTS+=("--javaver must be specified")
 fi
 
 if [[ "${#MISSING_REQUIREMENTS[@]}" -gt 0 ]]; then
