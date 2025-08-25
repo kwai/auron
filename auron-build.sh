@@ -24,6 +24,7 @@ print_help() {
     echo "Build Auron project with specified Maven profiles"
     echo
     echo "Options:"
+    echo "  --docker <true|false>    Build in Docker (default: false)"
     echo "  --pre                    Activate pre-release profile"
     echo "  --release                Activate release profile"
     echo "  --sparkver <VERSION>     Specify Spark version (e.g. 3.0/3.1/3.2/3.3/3.4/3.5)"
@@ -38,13 +39,14 @@ print_help() {
     echo
     echo "Examples:"
     echo "  $0 --clean true --skiptests true --pre --sparkver 3.5 --scalaver 2.12"
-    echo "  $0 --clean true --skiptests true --release --sparkver 3.5 --scalaver 2.12 --celeborn 0.5 --uniffle 0.9 --paimon 1.1"
+    echo "  $0 --docker true --clean true --skiptests true --release --sparkver 3.5 --scalaver 2.12 --celeborn 0.5 --uniffle 0.9 --paimon 1.1"
     exit 0
 }
 
 MVN_CMD="$(dirname "$0")/build/mvn"
 
 # Initialize variables
+USE_DOCKER=false
 PRE_PROFILE=false
 RELEASE_PROFILE=false
 CLEAN=true
@@ -66,6 +68,15 @@ while [[ $# -gt 0 ]]; do
         --release)
             RELEASE_PROFILE=true
             shift
+            ;;
+        --docker)
+            if [[ -n "$2" && "$2" =~ ^(true|false)$ ]]; then
+                USE_DOCKER="$2"
+                shift 2
+            else
+                echo "ERROR: --docker requires true/false" >&2
+                exit 1
+            fi
             ;;
         --clean)
             if [[ -n "$2" && "$2" =~ ^(true|false)$ ]]; then
@@ -184,6 +195,10 @@ if [[ "$CLEAN" == true ]]; then
 fi
 
 BUILD_ARGS=()
+# In Docker mode, use multi-threaded Maven build with -T8 for faster compilation
+if [[ "$USE_DOCKER" == true ]]; then
+    BUILD_ARGS+=("-T8")
+fi
 if [[ "$SKIP_TESTS" == true ]]; then
     BUILD_ARGS+=("package" "-DskipTests")
 else
@@ -218,5 +233,18 @@ fi
 MVN_ARGS=("${CLEAN_ARGS[@]}" "${BUILD_ARGS[@]}")
 
 # Execute Maven command
-echo "Compiling with maven args: $MVN_CMD ${MVN_ARGS[@]}"
-"$MVN_CMD" "${MVN_ARGS[@]}"
+if [[ "$USE_DOCKER" == true ]]; then
+    if [[ "$CLEAN" == true ]]; then
+        # Clean the host-side directory that is mounted into the Docker container as /auron/target.
+        # This avoids "device or resource busy" errors when running `mvn clean` inside the container.
+        echo "[INFO] Docker mode: manually cleaning target-docker contents..."
+        rm -rf ./target-docker/* || echo "[WARN] Failed to clean target-docker/*"
+    fi
+
+    echo "[INFO] Compiling inside Docker container..."
+    export AURON_BUILD_ARGS="${BUILD_ARGS[*]}"
+    exec docker-compose -f dev/docker-build/docker-compose.yml up --abort-on-container-exit
+else
+    echo "[INFO] Compiling locally with maven args: $MVN_CMD ${MVN_ARGS[*]}"
+    "$MVN_CMD" "${MVN_ARGS[@]}"
+fi
